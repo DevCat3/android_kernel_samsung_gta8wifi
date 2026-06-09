@@ -56,6 +56,9 @@
 #include <net/busy_poll.h>
 #include <net/tcp.h>
 #include <linux/bpf_trace.h>
+#ifndef NO_QUEUE_MAPPING
+#define NO_QUEUE_MAPPING 0xffff
+#endif
 
 /**
  *	sk_filter_trim_cap - run a packet through a socket filter
