@@ -21,7 +21,9 @@
 #include <openssl/bio.h>
 #include <openssl/pem.h>
 #include <openssl/err.h>
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
 #include <openssl/engine.h>
+#endif
 
 #define PKEY_ID_PKCS7 2
 
@@ -43,12 +45,17 @@ static void display_openssl_errors(int l)
 		return;
 	fprintf(stderr, "At main.c:%d:\n", l);
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	while ((e = ERR_get_error_all(&file, &line, NULL, NULL, NULL))) {
+#else
 	while ((e = ERR_get_error_line(&file, &line))) {
+#endif
 		ERR_error_string(e, buf);
 		fprintf(stderr, "- SSL %s: %s:%d\n", buf, file, line);
 	}
 }
 
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
 static void drain_openssl_errors(void)
 {
 	const char *file;
@@ -58,6 +65,7 @@ static void drain_openssl_errors(void)
 		return;
 	while (ERR_get_error_line(&file, &line)) {}
 }
+#endif
 
 #define ERR(cond, fmt, ...)				\
 	do {						\
@@ -97,7 +105,7 @@ int main(int argc, char **argv)
 
 	kbuild_verbose = atoi(getenv("KBUILD_VERBOSE")?:"0");
 
-        key_pass = getenv("KBUILD_SIGN_PIN");
+	key_pass = getenv("KBUILD_SIGN_PIN");
 
 	if (argc != 3)
 		format();
@@ -112,6 +120,7 @@ int main(int argc, char **argv)
 		fclose(f);
 		exit(0);
 	} else if (!strncmp(cert_src, "pkcs11:", 7)) {
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
 		ENGINE *e;
 		struct {
 			const char *cert_id;
@@ -134,6 +143,9 @@ int main(int argc, char **argv)
 		ENGINE_ctrl_cmd(e, "LOAD_CERT_CTRL", 0, &parms, NULL, 1);
 		ERR(!parms.cert, "Get X.509 from PKCS#11");
 		write_cert(parms.cert);
+#else
+		ERR(1, "PKCS#11 ENGINE not supported with OpenSSL 3.0+");
+#endif
 	} else {
 		BIO *b;
 		X509 *x509;

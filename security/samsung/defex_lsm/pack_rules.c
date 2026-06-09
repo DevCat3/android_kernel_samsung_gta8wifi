@@ -13,7 +13,7 @@
 #include <errno.h>
 #include "include/defex_rules.h"
 
-#define SAFE_STRCOPY(dst, src) do { strncpy(dst, src, sizeof(dst)); dst[sizeof(dst) - 1] = 0; } while(0)
+#define SAFE_STRCOPY(dst, src) do { snprintf(dst, sizeof(dst), "%s", src); } while(0)
 
 const struct feature_match_entry feature_match[] = {
 	{"feature_safeplace_path", feature_safeplace_path},
